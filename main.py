@@ -1,14 +1,31 @@
 from ortools.sat.python import cp_model
+import datetime
 
-day=23
-month=8
-def solve():
-    model = cp_model.CpModel()
-    num_pieces = 8
+day = 24  #日，均从1开始
+month = 8  #月
+weekday = 4  #星期,0表示星期天
+isWeek = True  #是否带星期
+
+startTime = datetime.datetime.now()
+
+num_col = 7  #列数
+if isWeek:
+    num_row = 8  #行数
+    num_pieces = 10  #拼图片数
+    num_piece = 5  #每片拼图包含的方块数（最大值）
+else:
     num_row = 7
-    num_col = 7
+    num_pieces = 8
     num_piece = 6
 
+if isWeek:
+    fileName = './result/{}_{}_{}_result.csv'.format(
+        month, day, weekday)
+else:
+    fileName = './result/{}_{}_result.csv'.format(month, day)
+
+def solve():
+    model = cp_model.CpModel()
     work = {}
     # 创建【碎片型号，碎片号，碎片排布形态，行号，列号】的五维0-1数组
     for p in range(num_pieces):
@@ -20,21 +37,29 @@ def solve():
                             'work_%i_%i_%i_%i_%i' % (p, n, s, r, c))
     #输入条件
     if day and month:
-        rowDay=int((day-1)/7)+2
-        colDay=(day-1) % 7 
-        rowMonth=int((month-1)/6)
-        colMonth=(month-1) % 6
-        #print(rowDay,colDay,rowMonth,colMonth)
-        model.Add(sum(work[p, n, s, rowDay, colDay] for p in range(num_pieces)
-            for n in range(num_piece) for s in range(8)) == 0)
-        model.Add(sum(work[p, n, s, rowMonth, colMonth] for p in range(num_pieces)
-            for n in range(num_piece) for s in range(8)) == 0)
+        rowDay = int((day - 1) / 7) + 2
+        colDay = (day - 1) % 7
+        rowMonth = int((month - 1) / 6)
+        colMonth = (month - 1) % 6
+        model.Add(
+            sum(work[p, n, s, rowDay, colDay] for p in range(num_pieces)
+                for n in range(num_piece) for s in range(8)) == 0)
+        model.Add(
+            sum(work[p, n, s, rowMonth, colMonth] for p in range(num_pieces)
+                for n in range(num_piece) for s in range(8)) == 0)
+    if isWeek:
+        rowWeek = int(weekday / 3) + 6
+        colWeek = weekday % 3 + 3
+        model.Add(
+            sum(work[p, n, s, rowWeek, colWeek] for p in range(num_pieces)
+                for n in range(num_piece) for s in range(8)) == 0)
 
     #每个行号、列号只有一种碎片的一种形态的一个号(个别位置没有)
     for r in range(num_row):
         for c in range(num_col):
-            if (r == 0 and c == 6) or (r == 1 and c == 6) or (r == 6
-                                                              and c > 2):
+            if (r == 0 and c == 6) or (r == 1 and c == 6) or (
+                    r == 6 and c > 2 and
+                (not isWeek)) or (r == 7 and c < 4 and isWeek):
                 """不可选择的位置"""
                 model.Add(
                     sum(work[p, n, s, r, c] for p in range(num_pieces)
@@ -44,39 +69,73 @@ def solve():
                     sum(work[p, n, s, r, c] for p in range(num_pieces)
                         for n in range(num_piece) for s in range(8)) <= 1)
 
-    #每种型号的每个碎片号只有1个行号、列号、形态
-    for p in range(num_pieces):
-        for n in range(num_piece):
-            if (p > 0 and n == 5):
-                "不可选择的碎片号"
-                model.Add(
-                    sum(work[p, n, s, r, c] for r in range(num_row)
-                        for c in range(num_col) for s in range(8)) == 0)
-            else:
-                model.Add(
-                    sum(work[p, n, s, r, c] for r in range(num_row)
-                        for c in range(num_col) for s in range(8)) == 1)
+    #每种型号的每个碎片号只有1个行号、列号、形态（含不可选择的碎片号）
+    if not isWeek:
+        for p in range(num_pieces):
+            for n in range(num_piece):
+                if (p < 7 and n == 5):
+                    "不可选择的碎片号"
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col) for s in range(8)) == 0)
+                else:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col) for s in range(8)) == 1)
+    else:
+        for p in range(num_pieces):
+            for n in range(num_piece):
+                if (p > 6 and n == 4):
+                    "不可选择的碎片号"
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col) for s in range(8)) == 0)
+                else:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col) for s in range(8)) == 1)
 
     #每种型号的所有碎片的形态号统一
+    if not isWeek:
+        for p in range(num_pieces):
+            for s in range(8):
+                if p == 7:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) <= 6)
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) != 5)
+                else:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) <= 5)
+                model.Add(
+                    sum(work[p, n, s, r, c] for r in range(num_row)
+                        for c in range(num_col)
+                        for n in range(num_piece)) != 4)
+    else:
+        for p in range(num_pieces):
+            for s in range(8):
+                if p >= 7:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) <= 4)
+                else:
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) <= 5)
+                    model.Add(
+                        sum(work[p, n, s, r, c] for r in range(num_row)
+                            for c in range(num_col)
+                            for n in range(num_piece)) != 4)
     for p in range(num_pieces):
         for s in range(8):
-            if p == 0:
-                model.Add(
-                    sum(work[p, n, s, r, c] for r in range(num_row)
-                        for c in range(num_col)
-                        for n in range(num_piece)) <= 6)
-                model.Add(
-                    sum(work[p, n, s, r, c] for r in range(num_row)
-                        for c in range(num_col)
-                        for n in range(num_piece)) != 5)
-            else:
-                model.Add(
-                    sum(work[p, n, s, r, c] for r in range(num_row)
-                        for c in range(num_col)
-                        for n in range(num_piece)) <= 5)
-            model.Add(
-                sum(work[p, n, s, r, c] for r in range(num_row)
-                    for c in range(num_col) for n in range(num_piece)) != 4)
             model.Add(
                 sum(work[p, n, s, r, c] for r in range(num_row)
                     for c in range(num_col) for n in range(num_piece)) != 3)
@@ -86,12 +145,13 @@ def solve():
             model.Add(
                 sum(work[p, n, s, r, c] for r in range(num_row)
                     for c in range(num_col) for n in range(num_piece)) != 1)
-
-    # 前两行空的必须为1
+    '''不要求日期时使用                
+    # 前两行空的必须为1(月份)
     model.Add(
         sum(work[p, n, s, r, c] for p in range(num_pieces)
             for n in range(num_piece) for s in range(8) for r in range(2)
             for c in range(num_col)) == 11)
+    '''
 
     # 拼图块内距离约束
     def addDistance(di, dj, pnum, nnum, nnum2):
@@ -102,16 +162,12 @@ def solve():
         d = [di, dj]
         for r in range(num_row):
             for c in range(num_col):
-                '''for p in range(num_pieces):
-                    for n in range(num_piece):
-                        if pnum != p or n != nnum2:'''
                 s = 0
                 for i in [1, -1]:
                     for j in [1, -1]:
                         for k in [0, 1]:
                             row = r + i * d[k]
                             col = c + j * d[1 - k]
-                            #print(i,j,k)
                             if row < num_row and col < num_col and row >= 0 and col >= 0:
                                 #print([pnum, nnum, s, r, c])
                                 #print([pnum, nnum2, s, row, col])
@@ -134,119 +190,200 @@ def solve():
     6:旋转180-
     7:顺时针旋转90后左右翻转（左上右下45°翻转）-
     '''
-    #0号
-    for s in range(2,8):
-         model.Add(sum(work[0, n, s, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    #2号
-    model.Add(sum(work[2, n, 1, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[2, n, 3, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[2, n, 5, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[2, n, 7, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    #3号
-    model.Add(sum(work[3, n, 4, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[3, n, 5, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[3, n, 6, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[3, n, 7, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    #7号
-    model.Add(sum(work[7, n, 2, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[7, n, 5, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[7, n, 6, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    model.Add(sum(work[7, n, 7, r, c] for r in range(num_row)
-                                for c in range(num_col)  for n in range(num_piece) ) == 0)
-    #0号拼图
-    """012  
-       345"""
-    addDistance(1, 2, 0, 0, 5)
+
+    #0号拼图(两种都有)
+    """
+    012
+    34
+    """
     addDistance(1, 1, 0, 0, 4)
     addDistance(1, 0, 0, 0, 3)
     addDistance(0, 2, 0, 0, 2)
     addDistance(0, 1, 0, 0, 1)
-    #1号拼图
+    #1号拼图（两种都有）
     """
-       012
-       34
+    0
+    1
+    234
     """
-    addDistance(1, 1, 1, 0, 4)
-    addDistance(1, 0, 1, 0, 3)
-    addDistance(0, 2, 1, 0, 2)
-    addDistance(0, 1, 1, 0, 1)
-    #2号拼图
+    addDistance(2, 2, 1, 0, 4)
+    addDistance(2, 1, 1, 0, 3)
+    addDistance(2, 0, 1, 0, 2)
+    addDistance(1, 0, 1, 0, 1)
+    model.Add(
+        sum(work[1, n, 1, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[1, n, 3, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[1, n, 5, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[1, n, 7, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    #2号拼图（两种都有）
     """
-        0
-        1
-        234
+    01
+     2
+     34
     """
     addDistance(2, 2, 2, 0, 4)
     addDistance(2, 1, 2, 0, 3)
-    addDistance(2, 0, 2, 0, 2)
-    addDistance(1, 0, 2, 0, 1)
-    #3号拼图
+    addDistance(1, 1, 2, 0, 2)
+    addDistance(0, 1, 2, 0, 1)
+    model.Add(
+        sum(work[2, n, 4, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[2, n, 5, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[2, n, 6, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[2, n, 7, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    #3号拼图（两种都有）
     """
-       01
-        2
-        34
+    0
+    1
+    23
+     4
     """
-    addDistance(2, 2, 3, 0, 4)
+    addDistance(3, 1, 3, 0, 4)
     addDistance(2, 1, 3, 0, 3)
-    addDistance(1, 1, 3, 0, 2)
-    addDistance(0, 1, 3, 0, 1)
-    #4号拼图
+    addDistance(2, 0, 3, 0, 2)
+    addDistance(1, 0, 3, 0, 1)
+
+    #4号拼图（两种都有）
     """
-       0
-       1
-       23
-        4
+    0
+    1
+    2
+    34
     """
     addDistance(3, 1, 4, 0, 4)
-    addDistance(2, 1, 4, 0, 3)
+    addDistance(3, 0, 4, 0, 3)
     addDistance(2, 0, 4, 0, 2)
     addDistance(1, 0, 4, 0, 1)
-    #5号拼图
+    #5号拼图（两种都有）
     """
-       0
-       1
-       23
-       4
+    0 1
+    234
     """
-    addDistance(3, 0, 5, 0, 4)
-    addDistance(2, 1, 5, 0, 3)
-    addDistance(2, 0, 5, 0, 2)
-    addDistance(1, 0, 5, 0, 1)
-    #6号拼图
-    """
-       0
-       1
-       2
-       34
-    """
-    addDistance(3, 1, 6, 0, 4)
-    addDistance(3, 0, 6, 0, 3)
-    addDistance(2, 0, 6, 0, 2)
-    addDistance(1, 0, 6, 0, 1)
-    #7号拼图
-    """
-       0 1
-       234
-    """
-    addDistance(1, 2, 7, 0, 4)
-    addDistance(1, 1, 7, 0, 3)
-    addDistance(1, 0, 7, 0, 2)
-    addDistance(0, 2, 7, 0, 1)
+    addDistance(1, 2, 5, 0, 4)
+    addDistance(1, 1, 5, 0, 3)
+    addDistance(1, 0, 5, 0, 2)
+    addDistance(0, 2, 5, 0, 1)
+    model.Add(
+        sum(work[5, n, 2, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[5, n, 5, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[5, n, 6, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    model.Add(
+        sum(work[5, n, 7, r, c] for r in range(num_row) for c in range(num_col)
+            for n in range(num_piece)) == 0)
+    if not isWeek:
+        #6号拼图
+        """
+        0
+        1
+        23
+        4
+        """
+        addDistance(3, 0, 6, 0, 4)
+        addDistance(2, 1, 6, 0, 3)
+        addDistance(2, 0, 6, 0, 2)
+        addDistance(1, 0, 6, 0, 1)
+        #7号拼图
+        """
+        012  
+        345
+        """
+        addDistance(1, 2, 7, 0, 5)
+        addDistance(1, 1, 7, 0, 4)
+        addDistance(1, 0, 7, 0, 3)
+        addDistance(0, 2, 7, 0, 2)
+        addDistance(0, 1, 7, 0, 1)
+        for s in range(2, 8):
+            model.Add(
+                sum(work[7, n, s, r, c] for r in range(num_row)
+                    for c in range(num_col) for n in range(num_piece)) == 0)
+    else:
+        #6号拼图
+        """
+        0
+        123
+        4
+        """
+        addDistance(2, 0, 6, 0, 4)
+        addDistance(1, 2, 6, 0, 3)
+        addDistance(1, 1, 6, 0, 2)
+        addDistance(1, 0, 6, 0, 1)
+        model.Add(
+            sum(work[6, n, 3, r, c] for r in range(num_row)
+                for c in range(num_col) for n in range(num_piece)) == 0)
+        model.Add(
+            sum(work[6, n, 4, r, c] for r in range(num_row)
+                for c in range(num_col) for n in range(num_piece)) == 0)
+        model.Add(
+            sum(work[6, n, 6, r, c] for r in range(num_row)
+                for c in range(num_col) for n in range(num_piece)) == 0)
+        model.Add(
+            sum(work[6, n, 7, r, c] for r in range(num_row)
+                for c in range(num_col) for n in range(num_piece)) == 0)
+
+        #7号拼图
+        """
+        0
+        1
+        2
+        3
+        """
+        addDistance(3, 0, 7, 0, 3)
+        addDistance(2, 0, 7, 0, 2)
+        addDistance(1, 0, 7, 0, 1)
+        for s in range(2, 8):
+            model.Add(
+                sum(work[7, n, s, r, c] for r in range(num_row)
+                    for c in range(num_col) for n in range(num_piece)) == 0)
+
+        #8号拼图
+        """
+        0
+        1
+        23
+        """
+        addDistance(2, 1, 8, 0, 3)
+        addDistance(2, 0, 8, 0, 2)
+        addDistance(1, 0, 8, 0, 1)
+
+        #9号拼图
+        """
+        01
+         23
+        """
+        addDistance(1, 2, 9, 0, 3)
+        addDistance(1, 1, 9, 0, 2)
+        addDistance(0, 1, 9, 0, 1)
+        for s in range(4, 8):
+            model.Add(
+                sum(work[9, n, s, r, c] for r in range(num_row)
+                    for c in range(num_col) for n in range(num_piece)) == 0)
 
     #求解
     print("开始计算")
+    with open(fileName, 'a+') as f:
+        if isWeek:
+            f.write('月,日,星期,,,,,,,,行号,方案号\n')
+        else:
+            f.write('月,日,,,,,,,,行号,方案号\n')
+        f.close()
     solver = cp_model.CpSolver()
     # Enumerate all solutions.
     solver.parameters.enumerate_all_solutions = True
@@ -254,36 +391,19 @@ def solve():
     status = solver.Solve(model, solution_printer)
     # 统计结果
     print('统计数据')
-    print('  - 状态       : %s' % solver.StatusName(status))
-    print("  -     OPTIMAL 代表最优解")
-    print('  -     INFEASIBLE 代表无解')
-    print('  -     FEASIBLE 代表可行解')
+    #print('  - 状态       : %s' % solver.StatusName(status))
+    print('  - 状态       : ', end='')
+    if solver.StatusName(status) == 'OPTIMAL':
+        print("最优解")
+    elif solver.StatusName(status) == 'FEASIBLE':
+        print('可行解')
+    elif solver.StatusName(status) == 'INFEASIBLE':
+        print('无解')
+    else:
+        print(solver.StatusName(status))
     print('  - 冲突       : %i' % solver.NumConflicts())
     print('  - 分支       : %i' % solver.NumBranches())
     print('  - 运行时长   : %f s' % solver.WallTime())
-    '''if status == cp_model.OPTIMAL or status == cp_model.FEASIBLE:
-        print("结果预览")
-        #print("     0   1   2   3   4   5   6")
-        for r in range(num_row):
-            #schedule = str(r) + ' : '
-            schedule = ''
-            for c in range(num_col):
-                isprint = False
-                for p in range(num_pieces):
-                    for s in range(8):
-                        for n in range(num_piece):
-                            if solver.BooleanValue(work[p, n, s, r, c]):
-                                #schedule += str(p) + '.' + str(n) + '.'+ str(s) +' | '
-                                #schedule += str(p) + '.' + str(n) +' | '
-                                schedule += str(p)  +' | '
-                                #schedule += str(p) + '.' + str(s) +' | '
-                                isprint = True
-                if not isprint:
-                    #schedule += '      | '
-                    #schedule += '    | '
-                    schedule += '  | '
-                    #schedule += '    | '
-            print(schedule)'''
 
 
 class VarArraySolutionPrinter(cp_model.CpSolverSolutionCallback):
@@ -295,51 +415,62 @@ class VarArraySolutionPrinter(cp_model.CpSolverSolutionCallback):
 
     def on_solution_callback(self):
         self.__solution_count += 1
-        fileName=str(month)+'_'+str(day)+'_'+'result.csv'
-        with open(fileName,'a+') as f:
-            csv_result=[]
-            dayText=''
-            monthText=''
-            for r in range(7):
+        print('第%i种方案：' % self.__solution_count)
+        endTime = datetime.datetime.now()
+        with open(fileName, 'a+') as f:
+            csv_result = []
+            dayText = ''
+            monthText = ''
+            for r in range(num_row):
                 #schedule = str(r) + ' : '
                 schedule = ''
-                csv_line=''
-                for c in range(7):
+                csv_line = ''
+                for c in range(num_col):
                     isprint = False
-                    for p in range(8):
+                    for p in range(num_pieces):
                         for s in range(8):
-                            for n in range(6):
-                                if self.BooleanValue(self.__variables[p, n, s, r,
-                                                                    c]):
+                            for n in range(num_piece):
+                                if self.BooleanValue(self.__variables[p, n, s,
+                                                                      r, c]):
                                     #schedule += str(p) + '.' + str(n) + '.'+ str(s) +' | '
                                     #schedule += str(p) + '.' + str(n) +' | '
-                                    csv_line+= str(p) +','
-                                    schedule += str(p) +' | '
+                                    csv_line += str(p) + ','
+                                    schedule += str(p) + ' | '
                                     #schedule += str(p) + '.' + str(s) +' | '
                                     isprint = True
                     if not isprint:
                         #schedule += '      | '
                         #schedule += '    | '
                         schedule += '  | '
-                        csv_line+= ','
-                        if (r == 0 and c == 6) or (r == 1 and c == 6) or (r == 6
-                                                              and c > 2):
-                           ''''''
-                        elif r>1:
-                            dayText=str((r-2)*7+c+1)+','
-                        else:
-                            monthText=str((r)*6+c+1)+','
+                        csv_line += ','
+                        if (r > 1 and r < 6) or (r == 6 and c < 3):
+                            dayText = str((r - 2) * 7 + c + 1) + ','
+                        elif r < 2 and c < 5:
+                            monthText = str((r) * 6 + c + 1) + ','
+                        elif r >= 6 and isWeek:
+                            weekText = str((r - 6) * 3 + c - 3) + ','
                         #schedule += '    | '
                 print(schedule)
-                csv_line+=str(r)+'行,方案'+str(self.__solution_count)+'\n'
+                csv_line += str(r) + '行,方案' + str(self.__solution_count) + '\n'
                 csv_result.append(csv_line)
             for line in csv_result:
                 f.write(monthText)
                 f.write(dayText)
+                if isWeek:
+                    f.write(weekText)
                 f.write(line)
-            print()
             f.close()
-
+            print(endTime - startTime)
+            print()
+        with open('print.log', 'a+') as f2:
+            if isWeek:
+                f2.write('{}月{}日星期{}第{}种方案，程序已运行{}\n'.format(
+                    month, day, weekday, self.__solution_count,
+                    endTime - startTime))
+            else:
+                f2.write('{}月{}日     第{}种方案，程序已运行{}\n'.format(
+                    month, day, self.__solution_count, endTime - startTime))
+            f2.close()
     def solution_count(self):
         return self.__solution_count
 
