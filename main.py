@@ -1,9 +1,9 @@
 from ortools.sat.python import cp_model
 import datetime
 
-day = 24  #日，均从1开始
+day = 29  #日，均从1开始
 month = 8  #月
-weekday = 4  #星期,0表示星期天
+weekday = 2  #星期,0表示星期天
 isWeek = True  #是否带星期
 
 startTime = datetime.datetime.now()
@@ -19,10 +19,10 @@ else:
     num_piece = 6
 
 if isWeek:
-    fileName = './result/{}_{}_{}_result.csv'.format(
-        month, day, weekday)
+    fileName = './result/{}_{}_{}_result.csv'.format(month, day, weekday)
 else:
     fileName = './result/{}_{}_result.csv'.format(month, day)
+
 
 def solve():
     model = cp_model.CpModel()
@@ -387,6 +387,8 @@ def solve():
     solver = cp_model.CpSolver()
     # Enumerate all solutions.
     solver.parameters.enumerate_all_solutions = True
+    #solver.parameters.num_search_workers = 4
+    #solver.parameters.interleave_search = False
     solution_printer = VarArraySolutionPrinter(work)
     status = solver.Solve(model, solution_printer)
     # 统计结果
@@ -447,7 +449,8 @@ class VarArraySolutionPrinter(cp_model.CpSolverSolutionCallback):
                             dayText = str((r - 2) * 7 + c + 1) + ','
                         elif r < 2 and c < 5:
                             monthText = str((r) * 6 + c + 1) + ','
-                        elif r >= 6 and isWeek:
+                        elif isWeek and ((r == 6 and c > 2) or
+                                         (r == 7 and c > 3)):
                             weekText = str((r - 6) * 3 + c - 3) + ','
                         #schedule += '    | '
                 print(schedule)
@@ -471,6 +474,7 @@ class VarArraySolutionPrinter(cp_model.CpSolverSolutionCallback):
                 f2.write('{}月{}日     第{}种方案，程序已运行{}\n'.format(
                     month, day, self.__solution_count, endTime - startTime))
             f2.close()
+
     def solution_count(self):
         return self.__solution_count
 
