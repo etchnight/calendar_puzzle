@@ -1,4 +1,6 @@
-csvname = "已完成结果/8_27_3_result"
+import os
+dirname="已完成结果"
+csvname = "8_27_3_result"
 count = 0
 scheme = ''
 isweek = True
@@ -7,9 +9,12 @@ color = [
     '#fc8452', '#9a60b4', '#ea7ccc', "#A9A9A9", "#FFFFFF"
 ]
 count = 1
-outputName='{}_{}-{}.html'.format(csvname, str(count), str(count + 100))
-
-with open(csvname + '.csv', 'r') as inputFile:
+outputName='{}/{}/{}_{}-{}.md'.format(dirname,csvname, csvname,str(count), str(count + 100))
+path='{}/{}'.format(dirname,csvname)
+folder = os.path.exists(path)
+if not folder:                   #判断是否存在文件夹如果不存在则创建为文件夹
+    os.makedirs(path)  
+with open(dirname+"/"+csvname + '.csv', 'r') as inputFile:
     output = open((outputName), 'w+')
     output.write('<style>td{width: 20px;height: 20px;}</style>')
     line = inputFile.readline()
@@ -23,7 +28,7 @@ with open(csvname + '.csv', 'r') as inputFile:
             count += 1
             if count%100==0:
                 output.close()
-                outputName='{}_{}-{}.html'.format(csvname, str(count), str(count + 100))
+                outputName='{}/{}/{}_{}-{}.md'.format(dirname,csvname, csvname,str(count), str(count + 100))
                 output = open((outputName), 'w+')
                 output.write('<style>td{width: 20px;height: 20px;}</style>')
             scheme = cellList[len(cellList) - 1]
@@ -43,4 +48,3 @@ with open(csvname + '.csv', 'r') as inputFile:
     output.close()
     inputFile.close()
 
-    
