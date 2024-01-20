@@ -2,12 +2,12 @@ from ortools.sat.python import cp_model
 import datetime
 
 #以下参数会算至年底
-isLeapYear = 0 #是否闰年
+isLeapYear = 1 #是否闰年
 isWeek = True  #是否带星期
-startMonth = 11  #第一天是几月
-startDay = 16  #第一天是几号
-startWeekday = 4  #第一天是星期几
-maxSolNum = 50  #最大解数量
+startMonth = 1  #第一天是几月
+startDay = 20  #第一天是几号
+startWeekday = 6  #第一天是星期几
+maxSolNum = 10  #最大解数量
 
 
 startTime = datetime.datetime.now()
