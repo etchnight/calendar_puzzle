@@ -1,10 +1,10 @@
 import os
-def csv2md(month,day,weekday,isweek):
+def csv2md(year,month,day,weekday,isweek):
     dirname="result"
     if isweek:
-        csvname = "{}_{}_{}_result".format(month,day,weekday)
+        csvname = "{}_{}_{}_{}_result".format(year,month,day,weekday)
     else:
-        csvname = "{}_{}_result".format(month,day)
+        csvname = "{}_{}_{}_result".format(year,month,day)
     count = 0
     scheme = ''
     #isweek = True

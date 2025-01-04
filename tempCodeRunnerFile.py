@@ -1,1 +1,1 @@
-open
+VarArraySolutionPrinter

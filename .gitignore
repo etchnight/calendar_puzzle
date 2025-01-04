@@ -1,4 +1,5 @@
 print.log
+print2.log
 result/*
 oldResult
 __pycache__
