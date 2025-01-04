@@ -9,8 +9,8 @@ isWeek = True  # 是否带星期
 
 year = 2025  # 仅作为输出使用
 startMonth = 1  # 第一天是几月
-startDay = 3  # 第一天是几号
-startWeekday = 5  # 第一天是星期几
+startDay = 1  # 第一天是几号
+startWeekday = 3  # 第一天是星期几
 
 maxSolNum = 10  # 最大解数量
 
