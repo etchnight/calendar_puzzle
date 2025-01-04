@@ -1,3 +1,4 @@
+import os
 from ortools.sat.python import cp_model
 import datetime
 from matrix2ascii import matrix2ascii
@@ -5,10 +6,12 @@ from matrix2ascii import matrix2ascii
 # 以下参数会算至年底
 isLeapYear = 0  # 是否闰年
 isWeek = True  # 是否带星期
+
 year = 2025  # 仅作为输出使用
-startMonth = 6  # 第一天是几月
+startMonth = 1  # 第一天是几月
 startDay = 3  # 第一天是几号
-startWeekday = 2  # 第一天是星期几
+startWeekday = 5  # 第一天是星期几
+
 maxSolNum = 10  # 最大解数量
 
 
@@ -27,11 +30,11 @@ def solve(day, month, weekday, isWeek, maxSolNum):
         num_pieces = 8
         num_piece = 6
     if isWeek:
-        outfileName = "./已完成结果/{}_{}_{}_{}_result.md".format(
+        outfileName = "./已完成结果/{}/{}_{}_{}_result.md".format(
             year, month, day, weekday
         )
     else:
-        outfileName = "./已完成结果/{}_{}_{}_result.md".format(year, month, day)
+        outfileName = "./已完成结果/{}/{}_{}_result.md".format(year, month, day)
 
     model = cp_model.CpModel()
     work = {}
@@ -633,6 +636,8 @@ def solve(day, month, weekday, isWeek, maxSolNum):
 
     # 求解
     print("开始计算")
+    if not os.path.exists("./已完成结果/{}".format(year)):
+        os.makedirs("./已完成结果/{}".format(year))
     with open(outfileName, "w+", encoding="utf-8") as f:
         if isWeek:
             f.write("{}年{}月{}日星期{}\n".format(year, month, day, weekday))
@@ -671,12 +676,13 @@ def solve(day, month, weekday, isWeek, maxSolNum):
                             for n in range(num_piece):
                                 if self.BooleanValue(self.__variables[p, n, s, r, c]):
                                     isprint = True
-                                    matrix[r][c] = p
+                                    matrix[r][c] = p + 1
                     if not isprint:
                         matrix[r][c] = 0
 
-            ascii = matrix2ascii(matrix)
-            #print(ascii)
+            ascii = matrix2ascii(matrix, 1)
+            ascii2 = matrix2ascii(matrix, 2)
+            print(ascii2)
             with open(outfileName, "a+", encoding="utf-8") as f:
                 f.write(print方案)
                 f.write(ascii)
