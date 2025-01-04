@@ -41,126 +41,117 @@ def solve(day, month, weekday, isWeek, maxSolNum, outfileName):
                             "work_%i_%i_%i_%i_%i" % (p, n, s, r, c)
                         )
 
-    # 输入条件
-    def input_conditions():
-        if day and month:
-            rowDay = int((day - 1) / 7) + 2
-            colDay = (day - 1) % 7
-            rowMonth = int((month - 1) / 6)
-            colMonth = (month - 1) % 6
-            model.Add(
-                sum(
-                    work[p, n, s, rowDay, colDay]
-                    for p in range(num_pieces)
-                    for n in range(num_piece)
-                    for s in range(8)
-                )
-                == 0
+    # 输入条件以及
+    # 每个行号、列号只有一种方块的一种形态的一个号(个别位置没有)
+    def addRowColConstraint(r, c):
+        model.Add(
+            sum(
+                work[p, n, s, r, c]
+                for p in range(num_pieces)
+                for n in range(num_piece)
+                for s in range(8)
             )
-            model.Add(
-                sum(
-                    work[p, n, s, rowMonth, colMonth]
-                    for p in range(num_pieces)
-                    for n in range(num_piece)
-                    for s in range(8)
-                )
-                == 0
-            )
+            == 0
+        )
+
+    def addRowColConstraints():
+        rowDay = int((day - 1) / 7) + 2
+        colDay = (day - 1) % 7
+        rowMonth = int((month - 1) / 6)
+        colMonth = (month - 1) % 6
         if isWeek:
             rowWeek = int(weekday / 4) + 6
             colWeek = weekday % 4 + 3 + rowWeek - 6
-            # print(rowWeek, colWeek)
-            model.Add(
-                sum(
-                    work[p, n, s, rowWeek, colWeek]
-                    for p in range(num_pieces)
-                    for n in range(num_piece)
-                    for s in range(8)
-                )
-                == 0
-            )
+        # print(rowWeek, colWeek)
 
-    input_conditions()
-    # 每个行号、列号只有一种方块的一种形态的一个号(个别位置没有)
-    for r in range(num_row):
-        for c in range(num_col):
-            if (
-                (r == 0 and c == 6)
-                or (r == 1 and c == 6)
-                or (r == 6 and c > 2 and (not isWeek))
-                or (r == 7 and c < 4 and isWeek)
-            ):
-                """不可选择的位置"""
-                model.Add(
-                    sum(
-                        work[p, n, s, r, c]
-                        for p in range(num_pieces)
-                        for n in range(num_piece)
-                        for s in range(8)
+        for r in range(num_row):
+            for c in range(num_col):
+                if (
+                    (r == 0 and c == 6)
+                    or (r == 1 and c == 6)
+                    or (r == 6 and c > 2 and (not isWeek))
+                    or (r == 7 and c < 4 and isWeek)
+                ):
+                    """不可选择的位置"""
+                    model.Add(
+                        sum(
+                            work[p, n, s, r, c]
+                            for p in range(num_pieces)
+                            for n in range(num_piece)
+                            for s in range(8)
+                        )
+                        == 0
                     )
-                    == 0
-                )
-            else:
-                model.Add(
-                    sum(
-                        work[p, n, s, r, c]
-                        for p in range(num_pieces)
-                        for n in range(num_piece)
-                        for s in range(8)
+                elif r == rowDay and c == colDay:
+                    addRowColConstraint(r, c)
+                elif r == rowMonth and c == colMonth:
+                    addRowColConstraint(r, c)
+                elif r == rowWeek and c == colWeek and isWeek:
+                    addRowColConstraint(r, c)
+                else:
+                    model.Add(
+                        sum(
+                            work[p, n, s, r, c]
+                            for p in range(num_pieces)
+                            for n in range(num_piece)
+                            for s in range(8)
+                        )
+                        == 1
                     )
-                    <= 1
-                )
-
+    addRowColConstraints()
+    
     # 每种拼图块的每个方块号只有1个行号、列号、形态（含不可选择的方块号）
-    if not isWeek:
-        for p in range(num_pieces):
-            for n in range(num_piece):
-                if p < 7 and n == 5:
-                    "不可选择的方块号"
-                    model.Add(
-                        sum(
-                            work[p, n, s, r, c]
-                            for r in range(num_row)
-                            for c in range(num_col)
-                            for s in range(8)
+    def addPieceConstraint():
+        if not isWeek:
+            for p in range(num_pieces):
+                for n in range(num_piece):
+                    if p < 7 and n == 5:
+                        "不可选择的方块号"
+                        model.Add(
+                            sum(
+                                work[p, n, s, r, c]
+                                for r in range(num_row)
+                                for c in range(num_col)
+                                for s in range(8)
+                            )
+                            == 0
                         )
-                        == 0
-                    )
-                else:
-                    model.Add(
-                        sum(
-                            work[p, n, s, r, c]
-                            for r in range(num_row)
-                            for c in range(num_col)
-                            for s in range(8)
+                    else:
+                        model.Add(
+                            sum(
+                                work[p, n, s, r, c]
+                                for r in range(num_row)
+                                for c in range(num_col)
+                                for s in range(8)
+                            )
+                            == 1
                         )
-                        == 1
-                    )
-    else:
-        for p in range(num_pieces):
-            for n in range(num_piece):
-                if p > 6 and n == 4:
-                    "不可选择的方块号"
-                    model.Add(
-                        sum(
-                            work[p, n, s, r, c]
-                            for r in range(num_row)
-                            for c in range(num_col)
-                            for s in range(8)
+        else:
+            for p in range(num_pieces):
+                for n in range(num_piece):
+                    if p > 6 and n == 4:
+                        "不可选择的方块号"
+                        model.Add(
+                            sum(
+                                work[p, n, s, r, c]
+                                for r in range(num_row)
+                                for c in range(num_col)
+                                for s in range(8)
+                            )
+                            == 0
                         )
-                        == 0
-                    )
-                else:
-                    model.Add(
-                        sum(
-                            work[p, n, s, r, c]
-                            for r in range(num_row)
-                            for c in range(num_col)
-                            for s in range(8)
+                    else:
+                        model.Add(
+                            sum(
+                                work[p, n, s, r, c]
+                                for r in range(num_row)
+                                for c in range(num_col)
+                                for s in range(8)
+                            )
+                            == 1
                         )
-                        == 1
-                    )
 
+    addPieceConstraint()
     # 每种型号的所有方块的形态号统一
     if not isWeek:
         for p in range(num_pieces):
@@ -792,6 +783,7 @@ def main(isLeapYear, isWeek, startMonth, startDay, startWeekday, maxSolNum):
             newfileName = outfileName.replace(".md", "-完成.md")
             if os.path.isfile(newfileName):
                 print("已计算过")
+                os.remove(outfileName)
                 continue
             solve(day, month, weekday, isWeek, maxSolNum, outfileName)
             os.rename(outfileName, newfileName)
