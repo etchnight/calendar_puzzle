@@ -62,7 +62,7 @@ def getNodes(matrix, i, j, asciiType=0):
     if asciiType == 0:
         return text
     elif asciiType == 1:
-        return text
+        return text.replace(" ", "\u00A0")
     elif asciiType == 2:
         num = getCell(matrix, i, j)
         outNum = str(num) if num >= 10 else "0" + str(num)
@@ -89,7 +89,7 @@ def text():
     matrix = [
         [4, 3, 3, 9, 9, 0, 0],
         [4, 3, 3, 2, 9, 9, 0],
-        [4, 3, 0, 2, 2, 2, 8],
+        [4, 3, 0, 2, 2, 2, 2],
         [1, 6, 6, 6, 7, 5, 5],
         [1, 1, 1, 6, 7, 0, 5],
         [0, 0, 0, 0, 7, 5, 5],

@@ -12,7 +12,7 @@ startMonth = 1  # 第一天是几月
 startDay = 1  # 第一天是几号
 startWeekday = 3  # 第一天是星期几
 
-maxSolNum = 10  # 最大解数量
+maxSolNum = 1  # 最大解数量
 
 startTime = datetime.datetime.now()
 
