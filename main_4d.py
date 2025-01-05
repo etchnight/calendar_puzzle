@@ -520,14 +520,23 @@ def solve(day, month, weekday, isWeek, maxSolNum, outfileName):
         )
 
 
-# from csv2html import csv2md
-def makeOutFile(year, month, day, weekday, isWeek):
+def getFileName(year, month, day, weekday, isWeek):
+    if month < 10:
+        month = "0" + str(month)
+    if day < 10:
+        day = "0" + str(day)
     if isWeek:
         outfileName = "./已完成结果/{}/{}月{}日星期{}.md".format(
             year, month, day, weekday
         )
     else:
         outfileName = "./已完成结果/{}/{}月{}日无星期.md".format(year, month, day)
+    return outfileName
+
+
+# from csv2html import csv2md
+def makeOutFile(year, month, day, weekday, isWeek):
+    outfileName = getFileName(year, month, day, weekday, isWeek)
     if not os.path.exists("./已完成结果/{}".format(year)):
         os.makedirs("./已完成结果/{}".format(year))
     with open(outfileName, "w+", encoding="utf-8") as f:

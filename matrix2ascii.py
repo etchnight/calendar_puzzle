@@ -84,7 +84,7 @@ def matrix2ascii(matrix, asciiType=0):
     return ascii
 
 
-def text():
+if __name__ == "__main__":
     # 测试
     matrix = [
         [4, 3, 3, 9, 9, 0, 0],
@@ -98,6 +98,3 @@ def text():
     print(ascii)
     with open("temp.md", "w+", encoding="utf-8") as f:
         f.write(ascii)
-
-
-text()
