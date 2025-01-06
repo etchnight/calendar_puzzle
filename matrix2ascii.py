@@ -81,7 +81,11 @@ def matrix2ascii(matrix, asciiType=0):
             ascii = ascii + getNodes(matrix, i, j, asciiType)
     if asciiType == 1:
         ascii = "\n```\n" + ascii + "\n```\n\n"
-    return ascii
+    result=''
+    for line in ascii.splitlines():
+            line = line + "\n"+asciiNextLine(line)
+            result = result + line
+    return result
 
 
 # 优化gitee显示，补丁方案
@@ -134,14 +138,16 @@ def tempPatchs():
         full_path = os.path.join(folder_path, entry)
         # 检查是否为文件
         if os.path.isfile(full_path):
+            tempPatch(full_path)
             print(full_path)
 
 
 
 if __name__ == "__main__":
+    #tempPatchs()
     filePath = "temp.md"
-    #test("temp.md")
-    tempPatch("temp.md")
+    test(filePath)
+    #tempPatch("temp.md")
 
 
 
